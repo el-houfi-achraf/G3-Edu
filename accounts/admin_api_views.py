@@ -157,20 +157,40 @@ class AdminUserDetailAPIView(APIView):
 
 class AdminInvalidateUserSessionsAPIView(APIView):
     """
-    Invalide toutes les sessions d'un utilisateur.
+    Invalide toutes les sessions d'un utilisateur et blackliste ses tokens JWT.
     
     POST /api/admin/users/<id>/invalidate-sessions/
     """
     permission_classes = [IsAuthenticated, IsAdminPermission]
     
     def post(self, request, user_id):
-        user = get_object_or_404(User, id=user_id)
-        count = UserSession.invalidate_user_sessions(user)
+        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
         
-        logger.info(f"Sessions invalidées pour {user.username}: {count} par {request.user.username}")
+        user = get_object_or_404(User, id=user_id)
+        
+        # 1. Invalider les sessions Django
+        session_count = UserSession.invalidate_user_sessions(user)
+        
+        # 2. Blacklister tous les tokens JWT de l'utilisateur
+        token_count = 0
+        try:
+            tokens = OutstandingToken.objects.filter(user=user)
+            for token in tokens:
+                try:
+                    _, created = BlacklistedToken.objects.get_or_create(token=token)
+                    if created:
+                        token_count += 1
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.warning(f"Erreur lors du blacklisting des tokens: {e}")
+        
+        logger.info(f"Sessions invalidées pour {user.username}: {session_count} sessions, {token_count} tokens par {request.user.username}")
         
         return Response({
-            'message': f'{count} session(s) invalidée(s) pour {user.username}'
+            'message': f'Sessions invalidées pour {user.username}',
+            'sessions_invalidated': session_count,
+            'tokens_blacklisted': token_count
         }, status=status.HTTP_200_OK)
 
 

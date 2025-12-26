@@ -133,23 +133,16 @@ export default function LoginPage() {
                 <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-2">
                   Identifiant
                 </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4a853]/50">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Entrez votre identifiant"
-                    required
-                    autoFocus
-                    className="input pl-12"
-                  />
-                </div>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Entrez votre identifiant"
+                  required
+                  autoFocus
+                  className="input"
+                />
               </div>
 
               {/* Password */}
@@ -158,11 +151,6 @@ export default function LoginPage() {
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4a853]/50">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -170,7 +158,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Entrez votre mot de passe"
                     required
-                    className="input pl-12 pr-12"
+                    className="input pr-12"
                   />
                   <button
                     type="button"
