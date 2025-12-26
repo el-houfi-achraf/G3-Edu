@@ -15,6 +15,77 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class ActiveToken(models.Model):
+    """
+    Stocke le JTI (JWT ID) du token actif pour chaque utilisateur.
+    Permet d'implémenter la session unique : un seul token valide à la fois.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='active_token',
+        verbose_name='Utilisateur'
+    )
+    jti = models.CharField(
+        max_length=255,
+        verbose_name='JWT ID actif'
+    )
+    created_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Dernière connexion'
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name='Adresse IP'
+    )
+    user_agent = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='User Agent'
+    )
+
+    class Meta:
+        verbose_name = 'Token Actif'
+        verbose_name_plural = 'Tokens Actifs'
+
+    def __str__(self):
+        return f"{self.user.username} - {self.created_at.strftime('%d/%m/%Y %H:%M')}"
+
+    @classmethod
+    def set_active_token(cls, user, jti, ip_address=None, user_agent=''):
+        """Définit le token actif pour un utilisateur (remplace l'ancien)."""
+        obj, created = cls.objects.update_or_create(
+            user=user,
+            defaults={
+                'jti': jti,
+                'ip_address': ip_address,
+                'user_agent': user_agent[:500]
+            }
+        )
+        action = "créé" if created else "mis à jour"
+        logger.info(f"Token actif {action} pour {user.username}")
+        return obj
+
+    @classmethod
+    def is_token_active(cls, user, jti):
+        """Vérifie si le JTI donné est le token actif de l'utilisateur."""
+        try:
+            active = cls.objects.get(user=user)
+            return active.jti == jti
+        except cls.DoesNotExist:
+            return False
+
+    @classmethod
+    def invalidate_token(cls, user):
+        """Invalide le token actif d'un utilisateur."""
+        deleted, _ = cls.objects.filter(user=user).delete()
+        if deleted:
+            logger.info(f"Token invalidé pour {user.username}")
+        return deleted
+
+
 class UserSession(models.Model):
     """
     Modèle pour tracker les sessions actives de chaque utilisateur.

@@ -38,13 +38,15 @@ class AdminUserListAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdminPermission]
     
     def get(self, request):
+        from .models import ActiveToken
         users = User.objects.all().order_by('-date_joined')
         data = []
         for user in users:
             user_data = UserSerializer(user).data
             user_data['is_staff'] = user.is_staff
             user_data['is_superuser'] = user.is_superuser
-            user_data['active_sessions'] = UserSession.objects.filter(user=user).count()
+            # Compter les sessions actives (1 si token actif existe, 0 sinon)
+            user_data['active_sessions'] = 1 if ActiveToken.objects.filter(user=user).exists() else 0
             data.append(user_data)
         return Response({
             'users': data,
@@ -165,13 +167,17 @@ class AdminInvalidateUserSessionsAPIView(APIView):
     
     def post(self, request, user_id):
         from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+        from .models import ActiveToken
         
         user = get_object_or_404(User, id=user_id)
         
         # 1. Invalider les sessions Django
         session_count = UserSession.invalidate_user_sessions(user)
         
-        # 2. Blacklister tous les tokens JWT de l'utilisateur
+        # 2. Supprimer le token actif (déconnexion immédiate)
+        ActiveToken.invalidate_token(user)
+        
+        # 3. Blacklister tous les tokens JWT de l'utilisateur
         token_count = 0
         try:
             tokens = OutstandingToken.objects.filter(user=user)
@@ -188,7 +194,7 @@ class AdminInvalidateUserSessionsAPIView(APIView):
         logger.info(f"Sessions invalidées pour {user.username}: {session_count} sessions, {token_count} tokens par {request.user.username}")
         
         return Response({
-            'message': f'Sessions invalidées pour {user.username}',
+            'message': f'Session invalidée pour {user.username}',
             'sessions_invalidated': session_count,
             'tokens_blacklisted': token_count
         }, status=status.HTTP_200_OK)

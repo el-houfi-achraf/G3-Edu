@@ -67,9 +67,14 @@ class LoginAPIView(APIView):
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
             
-            # 4. Extraire les informations de la requête
+            # 4. Stocker le JTI comme token actif (SESSION UNIQUE)
+            from .models import ActiveToken
             ip_address = self._get_client_ip(request)
             user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
+            
+            # Le JTI du access token est utilisé pour identifier la session
+            jti = refresh.access_token.get('jti')
+            ActiveToken.set_active_token(user, jti, ip_address, user_agent)
             
             logger.info(f"API Login réussi pour {user.username} depuis {ip_address}")
             
