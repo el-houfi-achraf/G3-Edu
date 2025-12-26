@@ -30,16 +30,25 @@ class SingleSessionJWTAuthentication(JWTAuthentication):
         jti = validated_token.get('jti')
         
         if jti and user:
-            # Vérifier si c'est le token actif
-            if not ActiveToken.is_token_active(user, jti):
-                logger.warning(
-                    f"Token invalide pour {user.username}: n'est pas le token actif "
-                    "(connexion depuis un autre appareil)"
-                )
-                raise AuthenticationFailed(
-                    'Votre session a été interrompue car vous vous êtes connecté '
-                    'depuis un autre appareil.',
-                    code='token_not_active'
-                )
+            try:
+                # Vérifier si un token actif existe pour cet utilisateur
+                active_token = ActiveToken.objects.filter(user=user).first()
+                
+                if active_token:
+                    # Si un token actif existe, vérifier que c'est le bon
+                    if active_token.jti != jti:
+                        logger.warning(
+                            f"Token invalide pour {user.username}: n'est pas le token actif "
+                            "(connexion depuis un autre appareil)"
+                        )
+                        raise AuthenticationFailed(
+                            'Votre session a été interrompue car vous vous êtes connecté '
+                            'depuis un autre appareil.',
+                            code='token_not_active'
+                        )
+                # Si aucun token actif n'existe, on laisse passer (première connexion après migration)
+            except Exception as e:
+                # En cas d'erreur, logger et laisser passer
+                logger.error(f"Erreur lors de la vérification du token actif: {e}")
         
         return user
