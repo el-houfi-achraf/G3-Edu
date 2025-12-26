@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EduPlatform{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="dashboard-header mb-5">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold mb-2">
+                Bienvenue, {{ user.first_name|default:user.username }} 👋
+            </h1>
+            <p class="lead text-muted mb-0">
+                Accédez à vos cours et continuez votre apprentissage.
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <div class="stats-badge">
+                <i class="bi bi-collection-play text-primary"></i>
+                <span>{{ total_videos }} vidéo{% if total_videos > 1 %}s{% endif %} disponible{% if total_videos > 1 %}s{% endif %}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Categories with Videos -->
+{% for category in categories %}
+<section class="category-section mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="bi bi-folder2-open text-primary me-2"></i>
+            {{ category.name }}
+        </h2>
+        <a href="{% url 'videos:category_detail' category.id %}" class="btn btn-outline-primary btn-sm">
+            Voir tout <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+    
+    {% if category.description %}
+    <p class="text-muted mb-4">{{ category.description }}</p>
+    {% endif %}
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for video in category.videos.all %}
+        {% if video.is_published %}
+        <div class="col">
+            <div class="card video-card h-100 bg-dark border-secondary">
+                <a href="{% url 'videos:video_detail' video.id %}" class="video-thumbnail">
+                    <img src="{{ video.get_thumbnail_url }}" 
+                         class="card-img-top" 
+                         alt="{{ video.title }}"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/480x360/1a1a2e/ffffff?text=Vidéo'">
+                    <div class="play-overlay">
+                        <i class="bi bi-play-circle-fill"></i>
+                    </div>
+                </a>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{% url 'videos:video_detail' video.id %}" class="text-white text-decoration-none">
+                            {{ video.title|truncatechars:50 }}
+                        </a>
+                    </h5>
+                    {% if video.description %}
+                    <p class="card-text text-muted small">
+                        {{ video.description|truncatechars:80 }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent border-secondary">
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        {{ video.created_at|date:"d/m/Y" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</section>
+{% empty %}
+<!-- No categories yet -->
+<div class="text-center py-5">
+    <i class="bi bi-inbox display-1 text-muted mb-4"></i>
+    <h3 class="text-muted">Aucune vidéo disponible</h3>
+    <p class="text-muted">Les vidéos apparaîtront ici une fois ajoutées par l'administrateur.</p>
+</div>
+{% endfor %}
+
+<!-- Uncategorized Videos -->
+{% if uncategorized_videos %}
+<section class="category-section mb-5">
+    <h2 class="h4 mb-4">
+        <i class="bi bi-collection text-secondary me-2"></i>
+        Autres vidéos
+    </h2>
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for video in uncategorized_videos %}
+        <div class="col">
+            <div class="card video-card h-100 bg-dark border-secondary">
+                <a href="{% url 'videos:video_detail' video.id %}" class="video-thumbnail">
+                    <img src="{{ video.get_thumbnail_url }}" 
+                         class="card-img-top" 
+                         alt="{{ video.title }}"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/480x360/1a1a2e/ffffff?text=Vidéo'">
+                    <div class="play-overlay">
+                        <i class="bi bi-play-circle-fill"></i>
+                    </div>
+                </a>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{% url 'videos:video_detail' video.id %}" class="text-white text-decoration-none">
+                            {{ video.title|truncatechars:50 }}
+                        </a>
+                    </h5>
+                    {% if video.description %}
+                    <p class="card-text text-muted small">
+                        {{ video.description|truncatechars:80 }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

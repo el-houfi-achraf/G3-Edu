@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon Profil - EduPlatform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Profile Info -->
+    <div class="col-lg-4 mb-4">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body text-center p-4">
+                <div class="profile-avatar mb-3">
+                    <i class="bi bi-person-circle display-1 text-primary"></i>
+                </div>
+                
+                <h2 class="h4 mb-1">{{ user.first_name }} {{ user.last_name }}</h2>
+                <p class="text-muted mb-3">@{{ user.username }}</p>
+                
+                {% if user.email %}
+                <p class="mb-2">
+                    <i class="bi bi-envelope me-2"></i>
+                    {{ user.email }}
+                </p>
+                {% endif %}
+                
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-calendar me-2"></i>
+                    Membre depuis {{ user.date_joined|date:"d F Y" }}
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Session Info -->
+    <div class="col-lg-8 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Sessions Actives
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Rappel :</strong> Vous ne pouvez avoir qu'une seule session active à la fois. 
+                    Se connecter depuis un autre appareil déconnectera automatiquement celui-ci.
+                </div>
+                
+                {% if active_sessions %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date de connexion</th>
+                                <th>Adresse IP</th>
+                                <th>Navigateur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in active_sessions %}
+                            <tr>
+                                <td>
+                                    <i class="bi bi-clock me-2"></i>
+                                    {{ session.created_at|date:"d/m/Y H:i" }}
+                                </td>
+                                <td>
+                                    <i class="bi bi-geo me-2"></i>
+                                    {{ session.ip_address|default:"-" }}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ session.user_agent|truncatechars:50 }}
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Aucune session active trouvée.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
