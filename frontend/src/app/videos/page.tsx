@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,7 +11,7 @@ import Navbar from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import VideoCard from '@/components/VideoCard';
 
-export default function VideosPage() {
+function VideosContent() {
   const [videos, setVideos] = useState<VideoListItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,5 +161,17 @@ export default function VideosPage() {
         </footer>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function VideosPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#d4a853] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <VideosContent />
+    </Suspense>
   );
 }
