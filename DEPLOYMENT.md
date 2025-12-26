@@ -2,107 +2,161 @@
 
 ## Architecture
 
-- **Backend**: Django REST API → **Render** (avec PostgreSQL)
+- **Backend**: Django REST API → **PythonAnywhere** (avec MySQL)
 - **Frontend**: Next.js → **Vercel**
 
 ---
 
 ## 📦 1. Préparation du Code
 
-### Backend (Django)
-Les fichiers suivants sont déjà configurés :
+Le code est déjà configuré. Les fichiers importants :
 - `requirements.txt` - Dépendances Python
-- `build.sh` - Script de build Render
-- `Procfile` - Commande de démarrage
-- `runtime.txt` - Version Python (3.11)
 - `eduplatform/settings.py` - Configuration production-ready
-
-### Frontend (Next.js)
-- `next.config.ts` - Optimisé pour Vercel
-- Variable d'environnement: `NEXT_PUBLIC_API_URL`
 
 ---
 
-## 🖥️ 2. Déploiement Backend sur Render
+## 🖥️ 2. Déploiement Backend sur PythonAnywhere
 
-### Étape 1: Créer un compte Render
-Allez sur [render.com](https://render.com) et créez un compte.
+### Étape 1: Créer un compte PythonAnywhere
+1. Allez sur [pythonanywhere.com](https://www.pythonanywhere.com)
+2. Créez un compte gratuit (Beginner)
+3. Votre nom d'utilisateur sera dans l'URL: `username.pythonanywhere.com`
 
-### Étape 2: Créer une base de données PostgreSQL
-1. Dashboard → **New** → **PostgreSQL**
-2. Choisissez un nom (ex: `g3edu-db`)
-3. Region: **Frankfurt (EU Central)**
-4. Plan: **Free**
-5. Cliquez **Create Database**
-6. **Copiez l'Internal Database URL** (vous en aurez besoin)
+### Étape 2: Cloner le projet
+1. Allez dans **Consoles** → **Bash**
+2. Exécutez :
+```bash
+git clone https://github.com/el-houfi-achraf/G3-Edu.git
+cd G3-Edu
+```
 
-### Étape 3: Créer le Web Service
-1. Dashboard → **New** → **Web Service**
-2. Connectez votre dépôt GitHub
-3. Configurez:
-   - **Name**: `g3edu-backend`
-   - **Region**: `Frankfurt (EU Central)`
-   - **Branch**: `main`
-   - **Root Directory**: laisser vide (si le backend est à la racine) ou `eduplatform`
-   - **Runtime**: `Python 3`
-   - **Build Command**: `./build.sh`
-   - **Start Command**: `gunicorn eduplatform.wsgi:application`
+### Étape 3: Créer un environnement virtuel
+```bash
+mkvirtualenv --python=/usr/bin/python3.10 g3edu-venv
+pip install -r requirements.txt
+pip install mysqlclient
+```
 
-### Étape 4: Variables d'environnement (Render)
-Ajoutez ces variables dans **Environment**:
+### Étape 4: Créer la base de données MySQL
+1. Allez dans l'onglet **Databases**
+2. Initialisez MySQL avec un mot de passe
+3. Créez une base de données: `votre_username$g3edu`
+4. Notez les informations :
+   - Host: `votre_username.mysql.pythonanywhere-services.com`
+   - Username: `votre_username`
+   - Database: `votre_username$g3edu`
 
-| Variable | Valeur |
-|----------|--------|
-| `SECRET_KEY` | Générer une clé sécurisée |
-| `DEBUG` | `False` |
-| `DATABASE_URL` | (URL interne de votre PostgreSQL) |
-| `ALLOWED_HOSTS` | `g3edu-backend.onrender.com` |
-| `FRONTEND_URL` | `https://votre-app.vercel.app` |
-| `CSRF_TRUSTED_ORIGINS` | `https://g3edu-backend.onrender.com,https://votre-app.vercel.app` |
-| `PYTHON_VERSION` | `3.11.0` |
+### Étape 5: Configurer le fichier .env
+Dans le dossier G3-Edu, créez un fichier `.env`:
+```bash
+cd ~/G3-Edu
+nano .env
+```
 
-> 💡 Pour générer une SECRET_KEY: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`
+Contenu du fichier .env:
+```
+SECRET_KEY=votre-cle-secrete-tres-longue-et-aleatoire
+DEBUG=False
+ALLOWED_HOSTS=votre_username.pythonanywhere.com,localhost
+FRONTEND_URL=https://votre-app.vercel.app
+CSRF_TRUSTED_ORIGINS=https://votre_username.pythonanywhere.com,https://votre-app.vercel.app
 
-### Étape 5: Déployer
-Cliquez **Create Web Service** et attendez le déploiement.
+# MySQL Database
+DATABASE_URL=mysql://votre_username:votre_mot_de_passe@votre_username.mysql.pythonanywhere-services.com/votre_username$g3edu
+```
+
+### Étape 6: Migrer la base de données
+```bash
+cd ~/G3-Edu
+workon g3edu-venv
+python manage.py migrate
+python manage.py collectstatic --noinput
+python manage.py createsuperuser
+```
+
+### Étape 7: Configurer l'application Web
+1. Allez dans l'onglet **Web**
+2. Cliquez **Add a new web app**
+3. Choisissez **Manual configuration** → **Python 3.10**
+4. Configurez :
+
+**Virtualenv:**
+```
+/home/votre_username/.virtualenvs/g3edu-venv
+```
+
+**Source code:**
+```
+/home/votre_username/G3-Edu
+```
+
+**WSGI configuration file:**
+Cliquez sur le lien du fichier WSGI et **remplacez tout le contenu** par :
+
+```python
+import os
+import sys
+
+# Ajouter le projet au path
+path = '/home/VOTRE_USERNAME/G3-Edu'
+if path not in sys.path:
+    sys.path.append(path)
+
+os.environ['DJANGO_SETTINGS_MODULE'] = 'eduplatform.settings'
+
+# Charger les variables d'environnement
+from dotenv import load_dotenv
+project_folder = os.path.expanduser('~/G3-Edu')
+load_dotenv(os.path.join(project_folder, '.env'))
+
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+```
+
+### Étape 8: Configurer les fichiers statiques
+Dans l'onglet **Web**, section **Static files**:
+
+| URL | Directory |
+|-----|-----------|
+| `/static/` | `/home/votre_username/G3-Edu/staticfiles` |
+
+### Étape 9: Installer python-dotenv
+```bash
+workon g3edu-venv
+pip install python-dotenv
+```
+
+### Étape 10: Recharger l'application
+Cliquez sur le bouton vert **Reload** dans l'onglet Web.
 
 ---
 
 ## 🌐 3. Déploiement Frontend sur Vercel
 
-### Étape 1: Créer un compte Vercel
-Allez sur [vercel.com](https://vercel.com) et connectez votre GitHub.
+### Étape 1: Importer le projet
+1. Allez sur [vercel.com](https://vercel.com)
+2. **Add New** → **Project**
+3. Sélectionnez le repo `G3-Edu`
+4. **Root Directory**: `frontend`
 
-### Étape 2: Importer le projet
-1. **Add New** → **Project**
-2. Sélectionnez votre dépôt
-3. **Root Directory**: `frontend`
-4. Framework Preset: **Next.js** (auto-détecté)
-
-### Étape 3: Variables d'environnement (Vercel)
-Dans **Environment Variables**, ajoutez:
-
+### Étape 2: Variables d'environnement
 | Variable | Valeur |
 |----------|--------|
-| `NEXT_PUBLIC_API_URL` | `https://g3edu-backend.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | `https://votre_username.pythonanywhere.com` |
 
-### Étape 4: Déployer
-Cliquez **Deploy** et attendez.
+### Étape 3: Déployer
+Cliquez **Deploy**.
 
 ---
 
 ## 🔗 4. Configuration Post-Déploiement
 
-### Mettre à jour CORS sur Render
-Une fois l'URL Vercel connue, mettez à jour sur Render:
-- `FRONTEND_URL` = votre URL Vercel
+### Mettre à jour CORS
+Une fois l'URL Vercel connue, mettez à jour le fichier `.env` sur PythonAnywhere:
+- `FRONTEND_URL` = URL Vercel
 - `CSRF_TRUSTED_ORIGINS` = inclure l'URL Vercel
 
-### Créer un super-utilisateur
-Dans Render, allez dans **Shell** et exécutez:
-```bash
-python manage.py createsuperuser
-```
+Puis rechargez l'application.
 
 ---
 
@@ -110,31 +164,32 @@ python manage.py createsuperuser
 
 | Service | URL |
 |---------|-----|
-| Backend API | `https://g3edu-backend.onrender.com/api/` |
-| Django Admin | `https://g3edu-backend.onrender.com/admin/` |
+| Backend API | `https://votre_username.pythonanywhere.com/api/` |
+| Django Admin | `https://votre_username.pythonanywhere.com/admin/` |
 | Frontend | `https://votre-app.vercel.app` |
 
 ---
 
 ## ⚠️ Notes Importantes
 
-1. **Render Free Tier**: Le service s'endort après 15min d'inactivité. Premier chargement peut prendre ~30 secondes.
+1. **PythonAnywhere Free**: 
+   - Limite de CPU quotidienne
+   - Whitelist de sites externes (YouTube OK)
+   - HTTPS automatique
 
-2. **PostgreSQL Free**: 90 jours gratuits sur Render, puis $7/mois.
+2. **MySQL Free**: Inclus dans le plan gratuit.
 
 3. **Vercel Free**: Parfait pour les projets personnels.
-
-4. **HTTPS**: Les deux services utilisent HTTPS automatiquement.
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Erreur CORS
-Vérifiez que `FRONTEND_URL` et `CORS_ALLOWED_ORIGINS` incluent votre URL Vercel.
+### Erreur "DisallowedHost"
+Ajoutez votre domaine à ALLOWED_HOSTS dans .env
 
-### Erreur 500 sur le backend
-Vérifiez les logs Render et assurez-vous que `DEBUG=False` et que toutes les migrations ont été exécutées.
+### Erreur de base de données
+Vérifiez DATABASE_URL format: `mysql://user:pass@host/dbname`
 
-### Images ne s'affichent pas
-Vérifiez que YouTube est dans `remotePatterns` de `next.config.ts`.
+### Erreur 502 Bad Gateway
+Vérifiez les logs dans l'onglet Web → Error log
